@@ -4,7 +4,7 @@
 file { 'etc/ssh/ssh_config':
 	ensure => present,
 
-ccontent =>"
+content =>"
 
 	#SSH client configuration
 	host*
