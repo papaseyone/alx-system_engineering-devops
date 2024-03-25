@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-#make changes to confg file using puppet
+#make changes to configuration file using puppet
 
 file { 'ect/ssh/ssh_config':
 	ensure => present,
 
 content =>"
-	
+
 	#SSH client configuration
 	host*
 	IdentityFile ~/.ssh/school
