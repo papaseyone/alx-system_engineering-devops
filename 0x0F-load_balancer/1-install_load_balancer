@@ -1,32 +1,46 @@
 #!/usr/bin/env bash
-# Script that installs and configure HAProxy on lb-01 server
-# Config. of HAProxy to send traffic to web-01 and web-02 servers
-# Distribute requests using a roundrobin algorithm
-# Ensure that HAProxy can be managed via an init script
 
-# Installation and config HAproxy on my lb-01 server.
-sudo apt-get -y update
-apt-get -y install haproxy
+# Update package lists
+sudo apt update
 
-# edit config file
-server_config=\
-"
-frontend  itechpluscliq_frontend
-        bind *:80
-        mode http
-        default_backend itechpluscliq_backend
-backend itechpluscliq_backend
-        balance roundrobin
-	server 315130-web-01 18.208.119.80:80 check
-	server 315130-web-02 54.162.225.50:80 check
-"
-echo "$server_config" | sudo tee -a /etc/haproxy/haproxy.cfg
+# Install HAProxy
+sudo apt install -y haproxy
 
-# enable haproxy to be started by init script
-echo "ENABLED=1" | sudo tee -a /etc/default/haproxy
+# Configure HAProxy
+sudo tee /etc/haproxy/haproxy.cfg > /dev/null <<EOF
+global
+    log /dev/log    local0
+    log /dev/log    local1 notice
+    chroot /var/lib/haproxy
+    stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
 
-# Testing the HAproxy configuration file
-sudo haproxy -c -f /etc/haproxy/haproxy.cfg
+defaults
+    log     global
+    mode    http
+    option  httplog
+    option  dontlognull
+    timeout connect 5000
+    timeout client  50000
+    timeout server  50000
 
-# Restart the Nginx service
-sudo service haproxy restart
+frontend http_front
+    bind *:80
+    stats uri /haproxy?stats
+    default_backend http_back
+
+backend http_back
+    balance roundrobin
+    server 315130-web-01 18.208.119.80:80 check
+    server 315130-web-02 54.162.225.50:80 check
+EOF
+
+# Enable HAProxy service
+sudo systemctl enable haproxy
+
+# Start HAProxy service
+sudo systemctl start haproxy
+
